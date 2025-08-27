@@ -1,0 +1,13 @@
+paho-mqtt
+fastapi[standard]
+pydantic
+uvicorn[standard]
+sqlalchemy
+python-jose[cryptography]
+passlib[bcrypt]
+python-multipart
+websockets
+httpx
+python-dotenv
+aiosqlite
+python-dateutil

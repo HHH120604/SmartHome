@@ -1,0 +1,62 @@
+<!DOCTYPE html>
+<html lang="zh">
+<head>
+  <meta charset="UTF-8">
+  <title>SSE 流式测试</title>
+  <style>
+    body { font-family: monospace; background: #f7f7f7; padding: 20px; }
+    #output { white-space: pre-wrap; background: #fff; padding: 10px; border: 1px solid #ddd; }
+  </style>
+</head>
+<body>
+  <button onclick="getData()">获取数据</button>
+  <pre id="result"></pre>
+  <h2>SSE 流式传输测试</h2>
+  <input id="msg" placeholder="输入测试消息" value="你好，测试" />
+  <button onclick="startSSE()">发送</button>
+  <div id="output"></div>
+
+  <script>
+    function getData() {
+      // fetch("http://127.0.0.1:8000/test") // 这里换成你的目标网址
+      fetch("https://frp-gap.com:16943/test")
+        .then(response => {
+          if (!response.ok) {
+            throw new Error("网络响应错误: " + response.status);
+          }
+          return response.json(); // 如果返回的是 JSON 数据
+        })
+        .then(data => {
+          document.getElementById("result").textContent = JSON.stringify(data, null, 2);
+        })
+        .catch(error => {
+          console.error("请求失败:", error);
+        });
+    }
+
+    let source;
+
+    function startSSE() {
+      if (source) source.close();  // 如果已有连接，先关掉
+      let msg = document.getElementById("msg").value;
+      let url = `https://frp-gap.com:16943/sse/chat?msg=${encodeURIComponent(msg)}`;
+      // let url = `http://127.0.0.1:8000/sse/chat?msg=${encodeURIComponent(msg)}`;
+      document.getElementById("output").textContent = "连接中...\n";
+
+      source = new EventSource(url);
+      source.onmessage = (event) => {
+        if (event.data === "[END]") {
+          document.getElementById("output").textContent += "\n--- 流结束 ---";
+          source.close();
+        } else {
+          document.getElementById("output").textContent += event.data;
+        }
+      };
+      source.onerror = () => {
+        document.getElementById("output").textContent += "\n❌ 出错或连接关闭";
+        source.close();
+      };
+    }
+  </script>
+</body>
+</html>
