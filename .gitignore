@@ -1,6 +1,10 @@
+# workspace
+.vscode
+
 # ohos
 
 # python
+.env
 .venv
 __pycache__
 

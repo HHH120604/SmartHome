@@ -16,3 +16,15 @@
   > 创建关联后使用pull操作无需再次指定名称
 - 拉取最新代码：`git pull <远程分支名称>`
   > 需要拉取的分支名称(ohos、python、uniapp)，每次写代码前都拉取一次是个好习惯:star:
+E:.
+├─.vscode
+├─ohos
+├─python
+│  ├─app
+│  │  ├─api
+│  │  ├─models
+│  │  ├─schemas
+│  │  ├─services
+│  │  └─utils
+│  └─test
+└─uniapp

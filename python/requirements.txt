@@ -11,3 +11,5 @@ httpx
 python-dotenv
 aiosqlite
 python-dateutil
+requests
+openai
