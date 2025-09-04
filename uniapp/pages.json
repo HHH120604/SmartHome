@@ -1,0 +1,149 @@
+{
+  "pages": [
+    {
+      "path": "pages/login/login",
+       "style": {
+         "navigationBarTitleText": "",
+        "navigationStyle": "custom"
+        }
+    },
+    {
+      "path": "pages/register/register",
+      "style": {
+        "navigationBarTitleText": "",
+        "navigationStyle": "custom"
+      }
+    },
+    {
+      "path": "pages/index/index",
+      "style": {
+        "navigationBarTitleText": "",
+        "navigationStyle": "custom"
+      }
+    },
+	{
+	      "path": "pages/environment/monitor",
+          "style": {
+	    "navigationBarTitleText": "环境监测",
+	    "enablePullDownRefresh": false
+      }
+	},
+	{
+	  "path": "pages/environment/linechart",
+	  "style": {
+	    "navigationBarTitleText": "数据统计",
+	    "enablePullDownRefresh": false
+	  }
+	},
+	{
+	  "path": "pages/message/message",
+	  "style": {
+	    "navigationBarTitleText": "消息推送",
+	    "enablePullDownRefresh": false
+	  }
+	},
+	{
+	  "path": "pages/messageDetail/messageDetail",
+	  "style": {
+	    "navigationBarTitleText": "消息详情",
+	    "enablePullDownRefresh": false
+	  }
+	},
+    {
+      "path": "pages/device/light",
+      "style": {
+        "navigationBarTitleText": "客厅灯"
+      }
+    },
+    {
+      "path": "pages/device/air",
+      "style": {
+        "navigationBarTitleText": "卧室空调"
+      }
+    },
+    {
+      "path": "pages/device/shower",
+      "style": {
+        "navigationBarTitleText": "卫生间淋浴"
+      }
+    },
+	{
+	  "path": "pages/schedule/schedule",
+	  "style": {
+	    "navigationBarTitleText": "",
+	    "navigationStyle": "custom"
+	  }
+	},
+	{
+	  "path": "pages/schedule/add",
+	  "style": {
+	    "navigationBarTitleText": "",
+	    "navigationStyle": "custom"
+	  }
+	},
+	{
+		   "path": "pages/chat/chat",
+		   "style": {
+			"navigationBarTitleText": "",
+			"navigationStyle": "custom"
+			}
+	},
+    {
+      "path": "pages/mine/mine",
+     "style": {
+       "navigationBarTitleText": "",
+       "navigationStyle": "custom"
+	   }
+    },
+	{
+	    "path": "pages/userManagement/userManagement",
+	    "style": {
+	        "navigationBarTitleText": "用户管理"
+	      }
+	    },
+	{
+	    "path": "pages/changePassword/changePassword",
+	    "style": {
+	        "navigationBarTitleText": "修改密码"
+	    }
+	 }
+  ],
+  "tabBar": {
+    "color": "#7a7e83",
+    "selectedColor": "#007AFF",
+    "borderStyle": "black",
+    "backgroundColor": "#ffffff",
+    "list": [
+      {
+        "pagePath": "pages/index/index",
+        "text": "主页",
+        "iconPath": "static/icon/home.png",
+        "selectedIconPath": "static/icon/home_active.png"
+      },
+	  {
+	    "pagePath": "pages/schedule/schedule",
+	    "text": "日程",
+	    "iconPath": "static/icon/calendar.png",
+	    "selectedIconPath": "static/icon/calendar_active.png"
+	  },
+      {
+   		"pagePath": "pages/chat/chat",
+   		"text": "对话",
+   		"iconPath": "/static/icon/scene.png",
+   		"selectedIconPath": "/static/icon/scene.png"
+   	  },
+      {
+        "pagePath": "pages/mine/mine",
+        "text": "我的",
+        "iconPath": "/static/icon/setting.png",
+        "selectedIconPath": "/static/icon/setting_active.png"
+      }
+    ]
+  },
+  "easycom": {
+    "autoscan": true,
+    "custom": {
+      "^u-(.*)": "uview-ui/components/u-$1/u-$1.vue"
+    }
+  }
+}

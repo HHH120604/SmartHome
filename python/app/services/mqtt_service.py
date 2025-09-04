@@ -53,18 +53,24 @@ class MQTTService:
     def on_message(self, client, userdata, msg):
         """MQTT消息接收回调"""
         try:
-            topic = msg.topic
-            payload = json.loads(msg.payload.decode('utf-8'))
+            payload = msg.payload.decode('utf-8')
+            hi_data = payload.split(',')
+            data = SensorData(
+                device_id="hi3861_001",
+                temperature = float(hi_data[4]),  # 温度
+                humidity = float(hi_data[5]),  # 湿度
+                human_detected = int(hi_data[2]),  # 人体检测
+                light_intensity = int(hi_data[3]),  # 光照强度
+                gas_level = float(hi_data[1]),  # 可燃气体浓度
+                flame_detected = int(hi_data[0]),  # 是否检测到火焰
+                timestamp = datetime.now(),
+            )
+            self.check_and_send_alerts(data)
 
-            print(f"MQTT message: {topic}")
-
-            # 根据主题分发消息
-            if "/sensors/" in topic and topic.endswith("/data"):
-                asyncio.create_task(self.handle_sensor_data(payload))
-            elif "/devices/" in topic and topic.endswith("/status"):
-                asyncio.create_task(self.handle_device_status(payload))
-            elif "/devices/" in topic and topic.endswith("/heartbeat"):
-                self.handle_device_heartbeat(payload)
+            db = SessionLocal()
+            db.add(data)
+            db.commit()
+            db.close()
 
         except Exception as e:
             print(f"MQTT message error: {e}")
@@ -72,10 +78,11 @@ class MQTTService:
     def subscribe_topics(self):
         """订阅MQTT主题"""
         topics = [
-            ("hongmeng/sensors/+/data", 1),  # 传感器数据
-            ("hongmeng/devices/+/status", 1),  # 设备状态
-            ("hongmeng/devices/+/heartbeat", 0),  # 设备心跳
-            ("hongmeng/system/alerts", 1),  # 系统警报
+            # ("hongmeng/sensors/+/data", 1),  # 传感器数据
+            # ("hongmeng/devices/+/status", 1),  # 设备状态
+            # ("hongmeng/devices/+/heartbeat", 0),  # 设备心跳
+            # ("hongmeng/system/alerts", 1),  # 系统警报
+            ("hi3861/publish", 1),
         ]
 
         for topic, qos in topics:
@@ -103,14 +110,13 @@ class MQTTService:
                 soil_moisture=data.get("soil_moisture"),
                 data_json=data
             )
-
             db.add(sensor_data)
             db.commit()
 
             print(f"Sensor data saved: {device_id}")
 
             # 检查警报条件
-            await self.check_and_send_alerts(sensor_data, db)
+            # await self.check_and_send_alerts(sensor_data, db)
             db.close()
 
         except Exception as e:
@@ -158,10 +164,10 @@ class MQTTService:
             if device_id in self.device_status_cache:
                 self.device_status_cache[device_id]["last_heartbeat"] = datetime.now().isoformat()
 
-    async def check_and_send_alerts(self, sensor_data: SensorData, db):
+    def check_and_send_alerts(self, sensor_data: SensorData):
         """检查传感器数据并发送警报"""
         alerts = []
-
+        db = SessionLocal()
         # 火焰检测
         if sensor_data.flame_detected:
             alerts.append({
@@ -172,31 +178,40 @@ class MQTTService:
             })
 
         # 可燃气体检测
-        if sensor_data.gas_level and sensor_data.gas_level > 80:
+        if sensor_data.gas_level and sensor_data.gas_level > 300:
             alerts.append({
                 "type": "gas",
                 "severity": "high",
-                "message": f"Gas level high: {sensor_data.gas_level}%",
+                "message": f"可燃气体检测超标: {sensor_data.gas_level}pp",
                 "device_id": sensor_data.device_id
             })
 
         # 温度异常
         if sensor_data.temperature and sensor_data.temperature > 35:
             alerts.append({
-                "type": "temperature",
+                "type": "temp",
                 "severity": "medium",
-                "message": f"High temperature: {sensor_data.temperature}°C",
+                "message": f"室内温度过高: {sensor_data.temperature}°C",
+                "device_id": sensor_data.device_id
+            })
+            
+        # 人体检测
+        if sensor_data.human_detected and sensor_data.human_detected > 1000:
+            alerts.append({
+                "type": "human",
+                "severity": "medium",
+                "message": f"有人经过，请注意！",
                 "device_id": sensor_data.device_id
             })
 
         # 土壤湿度过低
-        if sensor_data.soil_moisture and sensor_data.soil_moisture < 20:
-            alerts.append({
-                "type": "soil",
-                "severity": "low",
-                "message": f"Low soil moisture: {sensor_data.soil_moisture}%",
-                "device_id": sensor_data.device_id
-            })
+        # if sensor_data.soil_moisture and sensor_data.soil_moisture < 20:
+        #     alerts.append({
+        #         "type": "soil",
+        #         "severity": "low",
+        #         "message": f"Low soil moisture: {sensor_data.soil_moisture}%",
+        #         "device_id": sensor_data.device_id
+        #     })
 
         # 处理警报
         for alert in alerts:
@@ -206,38 +221,47 @@ class MQTTService:
                 house_id=sensor_data.house_id,
                 alert_type=alert["type"],
                 message=alert["message"],
-                severity=alert["severity"]
+                severity=alert["severity"],
+                created_at=datetime.now(),
             )
             db.add(alert_log)
+            print(f"alert: {alert_log.message}")    
 
             # 通过MQTT发送警报
-            self.publish_alert(alert)
-            print(f"Alert: {alert['type']} - {alert['message']}")
+            # self.publish_alert(alert)
+            # print(f"Alert: {alert['type']} - {alert['message']}")
 
         if alerts:
             db.commit()
 
-    def publish_device_control(self, device_id: str, command: dict) -> bool:
+    def publish_device_control(self, module: str, device: str) -> bool:
         """发布设备控制指令"""
         if not self.connected:
             print("MQTT not connected")
             return False
 
-        topic = f"hongmeng/devices/{device_id}/control"
-        message = {
-            "device_id": device_id,
-            "command": command,
-            "timestamp": datetime.now().isoformat(),
-            "message_id": f"{device_id}_{int(time.time())}"
-        }
+        topic = f"hi3861/subscribe"
 
         try:
-            result = self.client.publish(topic, json.dumps(message, ensure_ascii=False))
+            # result = self.client.publish(topic, device)
+            # if result.rc == mqtt.MQTT_ERR_SUCCESS:
+            #     print(f"Control device sent: {device}")
+            # else:
+            #     print(f"Control device send failed: {result.rc}")
+            #     return False
+            # time.sleep(1)
+            result = self.client.publish(topic, module)
             if result.rc == mqtt.MQTT_ERR_SUCCESS:
-                print(f"Control sent: {device_id}")
-                return True
+                print(f"Control module sent: {module}")
             else:
-                print(f"Control send failed: {result.rc}")
+                print(f"Control module send failed: {result.rc}")
+                return False
+            time.sleep(1)
+            result = self.client.publish(topic, device)
+            if result.rc == mqtt.MQTT_ERR_SUCCESS:
+                print(f"Control device sent: {device}")
+            else:
+                print(f"Control device send failed: {result.rc}")
                 return False
         except Exception as e:
             print(f"Control send error: {e}")

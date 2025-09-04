@@ -15,15 +15,12 @@ class SensorDataCreate(BaseModel):
 
 
 class SensorDataResponse(BaseModel):
-    id: int
-    device_id: str
-    house_id: int
-    temperature: Optional[float]
+    temp: Optional[float]
     humidity: Optional[float]
-    light_intensity: Optional[float]
-    gas_level: Optional[float]
-    flame_detected: bool
-    soil_moisture: Optional[float]
+    gasConcentration: Optional[float]
+    flameLevel: bool
+    tempStatus: str
+    humidityStatus: str
     timestamp: datetime
 
     class Config:
@@ -31,12 +28,7 @@ class SensorDataResponse(BaseModel):
 
 
 class EnvironmentSummary(BaseModel):
-    temperature: Optional[float] = Field(None, description="当前温度")
-    humidity: Optional[float] = Field(None, description="当前湿度")
-    light_intensity: Optional[float] = Field(None, description="当前光照")
-    safety_status: str = Field(..., description="安全状态")
-    gas_level: Optional[float] = Field(None, description="气体浓度")
-    last_update: Optional[datetime] = Field(None, description="最后更新时间")
+    data: list[float] = Field(None, description="获取的环境数据")
 
 
 class AlertCreate(BaseModel):

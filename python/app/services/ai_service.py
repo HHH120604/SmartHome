@@ -29,6 +29,7 @@ class AIService:
     def __init__(self):
         # 对话历史记录
         self.conversation_history = []
+        self.log_time = datetime.now()
 
     async def check_and_alert_safety_issues(self, db: Session, current_user: User) -> str:
         """
@@ -39,14 +40,15 @@ class AIService:
             # 1. 检查数据库中未解决的警报
             active_alerts = db.query(AlertLog).filter(
                 AlertLog.house_id == current_user.house_id,
-                AlertLog.is_resolved == False
+                AlertLog.created_at > self.log_time
             ).all()
+            self.log_time = datetime.now()
 
             # 2. 获取最新传感器数据进行实时检测
-            latest_kitchen_data = db.query(SensorData).filter(
-                SensorData.device_id == "sensor_kitchen_safety",
-                SensorData.house_id == current_user.house_id
-            ).order_by(SensorData.timestamp.desc()).first()
+            # latest_kitchen_data = db.query(SensorData).filter(
+            #     SensorData.device_id == "sensor_kitchen_safety",
+            #     SensorData.house_id == current_user.house_id
+            # ).order_by(SensorData.timestamp.desc()).first()
 
             # 3. 分析安全威胁
             critical_alerts = []
@@ -63,25 +65,25 @@ class AIService:
                     medium_alerts.append(alert)
 
             # 3.2 实时检测危险数值
-            if latest_kitchen_data:
-                # 燃气浓度检测
-                if latest_kitchen_data.gas_level and latest_kitchen_data.gas_level > 80:
-                    critical_alerts.append({
-                        "message": f"厨房可燃气体浓度{latest_kitchen_data.gas_level}ppm，严重超标！",
-                        "action": "立即关闭燃气阀门，开窗通风，避免使用电器"
-                    })
-                elif latest_kitchen_data.gas_level and latest_kitchen_data.gas_level > 50:
-                    high_alerts.append({
-                        "message": f"厨房可燃气体浓度{latest_kitchen_data.gas_level}ppm，超过安全阈值",
-                        "action": "请检查燃气设备，增加通风"
-                    })
+            # if latest_kitchen_data:
+            #     # 燃气浓度检测
+            #     if latest_kitchen_data.gas_level and latest_kitchen_data.gas_level > 80:
+            #         critical_alerts.append({
+            #             "message": f"厨房可燃气体浓度{latest_kitchen_data.gas_level}ppm，严重超标！",
+            #             "action": "立即关闭燃气阀门，开窗通风，避免使用电器"
+            #         })
+            #     elif latest_kitchen_data.gas_level and latest_kitchen_data.gas_level > 50:
+            #         high_alerts.append({
+            #             "message": f"厨房可燃气体浓度{latest_kitchen_data.gas_level}ppm，超过安全阈值",
+            #             "action": "请检查燃气设备，增加通风"
+            #         })
 
-                # 火焰检测
-                if latest_kitchen_data.flame_detected:
-                    critical_alerts.append({
-                        "message": "厨房检测到火焰信号",
-                        "action": "请立即确认火源，如有必要拨打119"
-                    })
+            #     # 火焰检测
+            #     if latest_kitchen_data.flame_detected:
+            #         critical_alerts.append({
+            #             "message": "厨房检测到火焰信号",
+            #             "action": "请立即确认火源，如有必要拨打119"
+            #         })
 
             # 4. 根据威胁级别生成警报消息
             if critical_alerts:

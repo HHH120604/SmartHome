@@ -1,3 +1,4 @@
+from datetime import datetime
 from sqlalchemy import Column, Integer, Float, DateTime, String, Boolean, JSON
 from sqlalchemy.sql import func
 from app.database import Base
@@ -11,12 +12,13 @@ class SensorData(Base):
     house_id = Column(Integer, nullable=False, default=1)
     temperature = Column(Float, nullable=True)  # 温度
     humidity = Column(Float, nullable=True)  # 湿度
-    light_intensity = Column(Float, nullable=True)  # 光照强度
+    human_detected = Column(Integer, nullable=True)  # 人体检测
+    light_intensity = Column(Integer, nullable=True)  # 光照强度
     gas_level = Column(Float, nullable=True)  # 可燃气体浓度
     flame_detected = Column(Boolean, default=False)  # 是否检测到火焰
     soil_moisture = Column(Float, nullable=True)  # 土壤湿度（植物养护）
     data_json = Column(JSON, nullable=True)  # 其他传感器数据
-    timestamp = Column(DateTime, default=func.now())
+    timestamp = Column(DateTime, default=datetime.now())
 
 
 class AlertLog(Base):

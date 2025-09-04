@@ -1,0 +1,22 @@
+{
+  "name": "SmartHome-uniapp",
+  "version": "1.0.0",
+  "description": "",
+  "main": "main.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "",
+  "license": "ISC",
+  "dependencies": {
+    "marked": "^16.2.1",
+    "mqtt": "^3.0.0",
+    "pinia": "^3.0.3",
+    "uview-ui": "^2.0.31",
+    "vuex": "^3.6.2"
+  },
+  "devDependencies": {
+    "sass": "^1.51.0",
+    "sass-loader": "^10.2.1"
+  }
+}

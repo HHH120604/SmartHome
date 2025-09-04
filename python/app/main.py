@@ -10,11 +10,10 @@ sys.path.append(os.path.dirname(os.path.dirname(__file__)))
 # if project_root not in sys.path:
 #     sys.path.insert(0, project_root)
 
-from app.api import auth, devices, sensors, scenes, mqtt_devices, ai_chat
+from app.api import auth, devices, sensors, scenes, mqtt_devices, ai_chat, messages, schedules
 from app.config import settings
 from app.database import init_db
 from app.services.mqtt_service import mqtt_service
-from app.services.ai_service import ai_service
 
 # 应用启动和关闭事件
 @asynccontextmanager
@@ -68,6 +67,8 @@ app.include_router(sensors.router, prefix="/api/v1/sensors", tags=["传感器数
 app.include_router(scenes.router, prefix="/api/v1/scenes", tags=["场景管理"])
 app.include_router(mqtt_devices.router, prefix="/api/v1/mqtt", tags=["MQTT设备"])
 app.include_router(ai_chat.router, prefix="/api/v1/ai", tags=["AI智能助手"])
+app.include_router(messages.router, prefix="/api/v1/messages", tags=["信息提醒"])
+app.include_router(schedules.router, prefix="/api/v1/schedules", tags=["日程管理"])
 
 @app.get("/")
 async def root():
@@ -129,5 +130,6 @@ if __name__ == "__main__":
         "app.main:app",
         host=settings.HOST,
         port=settings.PORT,
-        reload=settings.DEBUG
+        reload=settings.DEBUG,
+        reload_dirs="./python/app"
     )

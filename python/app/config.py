@@ -3,7 +3,6 @@ from dotenv import load_dotenv
 load_dotenv()  # 加载项目根目录下的 .env 文件
 
 class Settings:
-    DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
     # 数据库配置
     DATABASE_URL = os.getenv("DATABASE_URL")
 
@@ -29,9 +28,9 @@ class Settings:
     DESCRIPTION = os.getenv("DESCRIPTION")
 
     # AI服务配置
-    DASHSCOPE_API_KEY = "sk-3f01d90099574cf1a1d8977f38986561"  # 你的通义千问API Key
     AI_MODEL = "qwen-plus"
     AI_TIMEOUT = 30
+    DASHSCOPE_API_KEY = os.getenv("DASHSCOPE_API_KEY")
 
     # WebSocket配置
     WEBSOCKET_HEARTBEAT_INTERVAL = 30  # 心跳间隔（秒）

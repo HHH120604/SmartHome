@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.orm import Session
-from sqlalchemy import desc, and_
+from sqlalchemy import desc, and_, func
 from datetime import datetime, timedelta
 from typing import List
 from app.database import get_db
@@ -15,71 +15,76 @@ from app.api.auth import get_current_user
 router = APIRouter()
 
 
-@router.get("/latest", response_model=EnvironmentSummary)
+@router.get("/latest/{type}/{range}", response_model=list[float])
 async def get_latest_sensor_data(
-        current_user: User = Depends(get_current_user),
-        db: Session = Depends(get_db)
+    type: str,
+    range: str,
+    db: Session = Depends(get_db)
 ):
     """获取最新环境数据摘要"""
-    if current_user.role == UserRole.GUEST:
-        raise HTTPException(status_code=403, detail="访客无法查看环境数据")
+    time_format = {
+        "3hours": '%Y-%m-%d %H:%M:00',
+        "day": '%Y-%m-%d %H:00:00',
+        "15days": '%Y-%m-%d'
+    }
+    num_data = {
+        "3hours": 18,
+        "day": 24,
+        "15days": 15
+    }
 
-    latest_data = db.query(SensorData).filter(
-        SensorData.house_id == current_user.house_id
-    ).order_by(desc(SensorData.timestamp)).first()
-
-    if not latest_data:
-        return EnvironmentSummary(
-            temperature=None,
-            humidity=None,
-            light_intensity=None,
-            safety_status="未知",
-            gas_level=None,
-            last_update=None
+    if type == "temperature":
+        query = db.query(
+            func.strftime(time_format[range], SensorData.timestamp).label('time'),
+            func.avg(SensorData.temperature).label('avg')
+        ).filter(
+            SensorData.temperature != None, SensorData.timestamp >= (datetime.now() - timedelta(hours=3))
+        ).group_by(
+            func.strftime(time_format[range], SensorData.timestamp)
+        ).order_by(
+            desc('time')
         )
+    elif type == "humidity":
+        query = db.query(
+            func.strftime(time_format[range], SensorData.timestamp).label('time'),
+            func.avg(SensorData.humidity).label('avg')
+        ).filter(
+            SensorData.humidity != None, SensorData.timestamp >= (datetime.now() - timedelta(hours=3))
+        ).group_by(
+            func.strftime(time_format[range], SensorData.timestamp)
+        ).order_by(
+            desc('time')
+        )
+    data = [data.avg for data in query.all()]
+    if not data:
+        data = [0]
+    while (len(data) < num_data[range]):
+        data.append(data[-1])
+    if range == "3hours" and len(data) > num_data[range]:
+        data = data[::10]
+    data = [round(data, 2) for data in data]
+    return data
 
-    # 判断安全状态
-    safety_status = "安全"
-    if latest_data.flame_detected:
-        safety_status = "警报"
-    elif latest_data.gas_level and latest_data.gas_level > 50:
-        safety_status = "需关注"
 
-    return EnvironmentSummary(
-        temperature=latest_data.temperature,
-        humidity=latest_data.humidity,
-        light_intensity=latest_data.light_intensity,
-        safety_status=safety_status,
-        gas_level=latest_data.gas_level,
-        last_update=latest_data.timestamp
-    )
-
-
-@router.get("/history", response_model=List[SensorDataResponse])
+@router.get("/latest", response_model=SensorDataResponse)
 async def get_sensor_history(
-        hours: int = Query(24, description="获取多少小时内的数据", ge=1, le=720),
-        device_id: str = Query(None, description="特定设备ID"),
-        current_user: User = Depends(get_current_user),
         db: Session = Depends(get_db)
 ):
     """获取历史传感器数据"""
-    if current_user.role == UserRole.GUEST:
-        raise HTTPException(status_code=403, detail="访客无法查看历史数据")
-
-    start_time = datetime.now() - timedelta(hours=hours)
-
-    query = db.query(SensorData).filter(
-        and_(
-            SensorData.house_id == current_user.house_id,
-            SensorData.timestamp >= start_time
-        )
-    )
-
-    if device_id:
-        query = query.filter(SensorData.device_id == device_id)
-
-    data = query.order_by(desc(SensorData.timestamp)).limit(1000).all()  # 限制最多1000条
-
+    data = {
+        "temp": db.query(SensorData.temperature).filter(SensorData.temperature > 0).order_by(desc(SensorData.timestamp)).limit(1).first(),
+        "humidity": db.query(SensorData.humidity).filter(SensorData.humidity != None).order_by(desc(SensorData.timestamp)).limit(1).first(),
+        "gasConcentration": db.query(SensorData.gas_level).filter(SensorData.gas_level > 0).order_by(desc(SensorData.timestamp)).limit(1).first(),
+        "flameLevel": db.query(SensorData.flame_detected).filter(SensorData.flame_detected != None).order_by(desc(SensorData.timestamp)).limit(1).first(),
+    }
+    for k, v in data.items():
+        if v:
+            data[k] = round(v[0], 2)
+        else:
+            data[k] = 0
+    data["tempStatus"] = "normal"
+    data["humidityStatus"] = "normal"
+    data["timestamp"] = datetime.now()
     return data
 
 
